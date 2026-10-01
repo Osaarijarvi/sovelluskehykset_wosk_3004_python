@@ -89,6 +89,11 @@ class User:
             self._id = cur.lastrowid
             cur.close()
 
+
+    # JSON-tyyppimuunnoksia ei pitäisi tehdä modelissa,
+    # koska model on malli datasta ja data access layer
+    # controllerin tehtävä on hoitaa responsen parsiminen
+    # TÄMÄ ON VAIN ESIMERKKI
     @staticmethod
     def list_to_json(users_list):
         json_list = []
@@ -96,6 +101,10 @@ class User:
             json_list.append(user.to_json())
         return json_list
 
+    # JSON-tyyppimuunnoksia ei pitäisi tehdä modelissa,
+    # koska model on malli datasta ja data access layer
+    # controllerin tehtävä on hoitaa responsen parsiminen
+    # TÄMÄ ON VAIN ESIMERKKI
     def to_json(self):
         return {'id': self._id, 'firstname': self.firstname, 'lastname': self.lastname, 'username': self.username}
 

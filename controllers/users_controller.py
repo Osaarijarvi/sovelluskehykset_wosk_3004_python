@@ -7,6 +7,9 @@ from models import User
 def get_all_users_handler():
     try:
         users = User.get_all()
+        # HUOM. tämä on esimerkki siitä, miten jsonin voi luoda
+        # modelissa, mutta SE EI OLE SUOSITELTAVA TAPA,
+        # koska mooelin tehtävä ei ole huolehtia responsen content-typesta
         users_list = User.list_to_json(users)
         return jsonify(users_list)
     except Exception as e:

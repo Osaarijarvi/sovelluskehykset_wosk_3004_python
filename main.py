@@ -7,17 +7,12 @@ from controllers import users_controller
 
 app = Flask(__name__)
 
-""" Mikä tässä koodissa on vikana?
 
-Jos tätä arvoidaan vain sillä perusteella, toimiiko kaikki, 
-niin koodissa ei ole mitään vikaa, koska kaikki ominaisuudet
-toimivat oikein
+def some_function(a, b, c, d=0, e=0, f=0):
+    pass
 
-Arkkitehtuurin näkökulmasta koodi on aivan käyttökelvotonta.
+some_function("a", "b", "c", f=1, d=2, e=3)
 
-Tehdään tämä seuraavaksi käyttäen MVC:tä.
-
-"""
 
 
 # Hakee kaikki käyttäjät JSON-muodossa

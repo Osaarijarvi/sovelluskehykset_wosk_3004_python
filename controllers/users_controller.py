@@ -1,14 +1,19 @@
 from flask import jsonify, request
+from flask.globals import app_ctx
 
 from custom_exceptions.not_found_exception import NotFoundException
+from decorators.users_repository import get_users_repository
 from models import User
 from repositories.users_sqlite_repository import UsersSQLiteRepository
 
+# UsersSQLiteRepositorya ei enää importata controlleriin: factory hoitaa sen luonnin
+from factories.repositories import create_users_repository
 
-def get_all_users_handler():
+
+@get_users_repository
+def get_all_users_handler(repo):
     try:
-        repo = UsersSQLiteRepository()
-        users = repo.get_all()
+        users = repo.all()
         # HUOM. tämä on esimerkki siitä, miten jsonin voi luoda
         # modelissa, mutta SE EI OLE SUOSITELTAVA TAPA,
         # koska mooelin tehtävä ei ole huolehtia responsen content-typesta
@@ -18,11 +23,11 @@ def get_all_users_handler():
         return jsonify({'error': str(e)}), 500
 
 
-def add_new_user_handler():
+@get_users_repository
+def add_new_user_handler(repo):
     try:
         req_data = request.get_json()
         new_user = User(req_data['first_name'], req_data['last_name'], req_data['username'])
-        repo = UsersSQLiteRepository()
         repo.save(new_user)
         return jsonify({'id': new_user.id, 'first_name': new_user.firstname, 'last_name': new_user.lastname,
                         'username': new_user.username})
@@ -30,9 +35,9 @@ def add_new_user_handler():
         return jsonify({'error': str(e)}), 500  # 409 CONFLICT
 
 
-def update_user_handler(_id):
+@get_users_repository
+def update_user_handler(repo, _id):
     try:
-        repo = UsersSQLiteRepository()
         existing_user = repo.get_by_id(_id)
         req_data = request.get_json()
         new_first_name = req_data.get('first_name', existing_user.firstname)
@@ -59,10 +64,9 @@ def update_user_handler(_id):
         return jsonify({'error': str(e)}), 500
 
 
-
-def get_user_handler(_id):
+@get_users_repository
+def get_user_handler(repo, _id):
     try:
-        repo = UsersSQLiteRepository()
         existing_user = repo.get_by_id(_id)
 
 
@@ -79,10 +83,9 @@ def get_user_handler(_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
-def delete_user_handler(_id):
+@get_users_repository
+def delete_user_handler(repo, _id):
     try:
-        repo = UsersSQLiteRepository()
         existing_user = repo.get_by_id(_id)
         repo.remove(existing_user.id)
 

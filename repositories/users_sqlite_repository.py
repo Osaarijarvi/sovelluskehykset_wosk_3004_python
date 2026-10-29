@@ -1,101 +1,76 @@
-import sqlite3
 
-from custom_exceptions.not_found_exception import NotFoundException
+# repositories/users_sqlite_repository.py
+
 from models import User
 
 
 class UsersSQLiteRepository:
-    # avataan tietokantayhteys luokan konstruktorissa
 
-    # HUOM: tietokantayhteyden avaaminen kannattaa tehdä toisin
-    # mutta käymme sen läpi vasta Dependency Injection-osiossa
+    def __init__(self, con):
+        self.connection = con
 
-    def __init__(self):
-        self.connection = sqlite3.connect('tuntiharjoitus1.db')
-
-
-    # suljetaan tietokantayhteys destruktorissa
-
-
-    # HUOM: tietokantayhteyden sulkeminen kannattaa tehdä toisin
-    # mutta käymme sen läpi vasta Dependency Injection-osiossa
-
-    def __del__(self):
-        if self.connection is not None:
-            self.connection.close()
-
-
-    def get_all(self):
+    def all(self):
 
         cur = self.connection.cursor()
         cur.execute("SELECT * FROM users")
         users = cur.fetchall()
         cur.close()
         users_list = []
-        # Huomaa, että model classin metodi ei palauta hakutulosta suoraan json-formaatissa
-        # Meidän pitää pystyä käyttämään samaa koodia riippumatta siitä,
-        # haluaako käyttäjä vastauksen html, json- tai xml-formaatissa
-
-        # Jos päättäisimme responsen formaatin modelissa,
-        # joutuisimme tekemään uuden model-luokan metodin eri
-        # dataformaateille.
-        # Modelin tehtävä ei ole päättää tästä.
-        # MODEL TOIMII TIETOMALLINA ja DATA ACCESS LAYERINÄ
-        # ELI TULKKINA CONTROLLERIN JA TIETOKANNAN VÄLISSÄ
 
         for user in users:
-            users_list.append(User(user[1], user[2], user[3], _id=user[0]))
-
+            users_list.append(User(user[1], user[2], user[3], user[0]))
         return users_list
 
-
-    def _update(self, user):
-        try:
-            cur = self.connection.cursor()
-            cur.execute("UPDATE users SET first_name = ?, last_name = ?, username = ?  WHERE id = ?",
-                        (user.firstname, user.lastname, user.username, user.id))
-            self.connection.commit()
-            cur.close()
-        except Exception as e:
-            self.connection.rollback()
-            raise e
-
-    def _insert(self, user):
-        try:
-            cur = self.connection.cursor()
-
-            cur.execute("INSERT INTO users(first_name, last_name, username) VALUES(?, ?, ?)",
-                        (user.firstname, user.lastname, user.username))
-            self.connection.commit()
-            user._id = cur.lastrowid
-
-            cur.close()
-        except Exception as e:
-            self.connection.rollback()
-            raise e
-
-    def save(self, user):
-        if user.id is None:
-            self._insert(user)
-        else:
-            self._update(user)
-
     def get_by_id(self, _id):
+        cursor = self.connection.cursor()
+        cursor.execute('SELECT * FROM users WHERE id = ?', (_id,))
+        user = cursor.fetchone()
+        cursor.close()
+        if user is None:
+            return None
+        return User(user[1], user[2], user[3], user[0])
+
+    def _add(self, first_name, last_name, username):
 
         cur = self.connection.cursor()
-        cur.execute("SELECT * FROM users WHERE id = ?", (_id,))
-        existing_user = cur.fetchone()
-        if existing_user is None:
-            raise NotFoundException()
-        return User(existing_user[1], existing_user[2], existing_user[3], _id=existing_user[0])
+        cur.execute("INSERT INTO users(first_name, last_name, username) VALUES(?, ?, ?)",
+                    (first_name, last_name, username))
+        self.connection.commit()
+        _id = cur.lastrowid
+        cur.close()
 
+        return User(first_name, last_name, username, _id)
 
-    def remove(self, _id):
-        try:
-            cur = self.connection.cursor()
-            cur.execute("DELETE FROM users WHERE id = ?", (_id,))
-            self.connection.commit()
-            cur.close()
-        except Exception as e:
-            self.connection.rollback()
-            raise e
+    def _update(self, first_name, last_name, username, _id):
+        user = self.get_by_id(_id)
+        # jos käyttäjää ei löydy, ei päivitetä mitään
+        if user is None:
+            return None
+
+        cur = self.connection.cursor()
+        cur.execute("UPDATE users SET first_name = ?, last_name = ?, username = ? WHERE id = ?",
+                    (first_name, last_name, username, _id))
+        self.connection.commit()
+
+        user.first_name = first_name
+        user.last_name = last_name
+        user.username = username
+        cur.close()
+
+        return user
+
+    def save(self, first_name, last_name, username, user_id=None):
+
+        if user_id is None:
+            return self._add(first_name, last_name, username)
+
+        else:
+            return self._update(first_name, last_name, username, user_id)
+
+    def remove_by_id(self, _id):
+        cur = self.connection.cursor()
+        cur.execute("DELETE FROM users WHERE id = ?", (_id,))
+        self.connection.commit()
+        rows_affected = cur.rowcount
+        cur.close()
+        return rows_affected == 1
